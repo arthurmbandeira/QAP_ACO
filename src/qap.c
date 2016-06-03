@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define FLUXO 1
+#define DISTANCIA 2
+
+
 struct SMatriz{
 	int tam;
 	int *elementos;
@@ -9,10 +13,10 @@ struct SMatriz{
 typedef struct SMatriz Matriz;
 
 Matriz *novaMatriz( int t ){
-	Matriz *m = malloc(sizeof(Matriz));
-	m->tam = t;
-	m->elementos = (int *)malloc(t*t*sizeof(int*));
-	return m;
+	Matriz *mat = malloc(sizeof(Matriz));
+	mat->tam = t;
+	mat->elementos = (int *)malloc(t*t*sizeof(int*));
+	return mat;
 }
 
 int getElem(Matriz *mat, int lin, int col){
@@ -23,26 +27,30 @@ void setElem(Matriz *mat, int lin, int col, int val){
 	mat->elementos[lin*mat->tam + col] = val;
 }
 
-int main(int argc, char const *argv[]){
+void leMatriz(Matriz *mat, char *path){
 	int i, j;
-	Matriz *matrizFluxo;
-	printf("%s\n", 	argv[1]);
+	int tam, valor;
 
 	FILE *file;
-	file = fopen("fluxo.txt", "r");
-	int tam;
+	file = fopen(path, "r");
 	fscanf(file, "%d", &tam);
-
-	matrizFluxo = novaMatriz(tam);
-
-	int valor;
+	mat = novaMatriz(tam);
 
 	for (i = 0; i < tam; i++){
 		for (j = 0; j < tam; j++){
 			fscanf(file, "%d", &valor);
-			setElem(matrizFluxo, i, j, valor);
-			printf("%d\n", getElem(matrizFluxo, i, j));
+			setElem(mat, i, j, valor);
+			printf("%d\n", getElem(mat, i, j));
 		}
 	}
 	fclose(file);
+}
+
+int main(int argc, char *argv[]){
+	Matriz *matrizFluxo;
+	Matriz *matrizDistancia;
+
+	leMatriz(matrizFluxo, argv[FLUXO]);
+	leMatriz(matrizDistancia, argv[DISTANCIA]);
+	
 }
