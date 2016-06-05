@@ -4,53 +4,73 @@
 #define FLUXO 1
 #define DISTANCIA 2
 
-
 struct SMatriz{
-	int tam;
-	int *elementos;
+    int tam;
+    int *elementos;
 };
-
 typedef struct SMatriz Matriz;
 
 Matriz *novaMatriz( int t ){
-	Matriz *mat = malloc(sizeof(Matriz));
-	mat->tam = t;
-	mat->elementos = (int *)malloc(t*t*sizeof(int*));
-	return mat;
+    Matriz *mat = malloc(sizeof(Matriz));
+    mat->tam = t;
+    mat->elementos = (int *)malloc(t*t*sizeof(int*));
+    return mat;
 }
 
 int getElem(Matriz *mat, int lin, int col){
-	return mat->elementos[lin*mat->tam + col];
+    return mat->elementos[lin*mat->tam + col];
 }
 
 void setElem(Matriz *mat, int lin, int col, int val){
-	mat->elementos[lin*mat->tam + col] = val;
+    mat->elementos[lin*mat->tam + col] = val;
 }
 
-void leMatriz(Matriz *mat, char *path){
-	int i, j;
-	int tam, valor;
+void somaPotencial(Matriz *mat){
+    int i, j;
+    int tamanho;
+    int val;
+    tamanho = mat->tam;
+    int vet [tamanho];
+    val = 0;
+    for (j = 0; j < tamanho; j++){
+        for (i = 0; i < tamanho; i++){
+            val +=  getElem(mat, i, j);
+            /*printf("%d, %d, %d\n", val, i, j);*/
+        }
+        vet[j] = val;
+        printf("%d\n", vet[j]);
+        val = 0;
+    }
+}
 
-	FILE *file;
-	file = fopen(path, "r");
-	fscanf(file, "%d", &tam);
-	mat = novaMatriz(tam);
+Matriz *leMatriz(Matriz *mat, char *path){
+    int i, j;
+    int tam, valor;
 
-	for (i = 0; i < tam; i++){
-		for (j = 0; j < tam; j++){
-			fscanf(file, "%d", &valor);
-			setElem(mat, i, j, valor);
-			printf("%d\n", getElem(mat, i, j));
-		}
-	}
-	fclose(file);
+    FILE *file;
+    file = fopen(path, "r");
+    fscanf(file, "%d", &tam);
+    mat = novaMatriz(tam);
+
+    for (i = 0; i < tam; i++){
+        for (j = 0; j < tam; j++){
+            fscanf(file, "%d", &valor);
+            setElem(mat, i, j, valor);
+            /*printf("%d\n", getElem(mat, i, j));*/
+        }
+    }
+
+    fclose(file);
+    return mat;
 }
 
 int main(int argc, char *argv[]){
-	Matriz *matrizFluxo;
-	Matriz *matrizDistancia;
+    Matriz *matrizFluxo;
+    Matriz *matrizDistancia;
+    Matriz *somaFluxo;
 
-	leMatriz(matrizFluxo, argv[FLUXO]);
-	leMatriz(matrizDistancia, argv[DISTANCIA]);
-	
+    matrizFluxo = leMatriz(matrizFluxo, argv[FLUXO]);
+    somaPotencial(matrizFluxo);
+    matrizDistancia = leMatriz(matrizDistancia, argv[DISTANCIA]);
+    somaPotencial(matrizDistancia);
 }
