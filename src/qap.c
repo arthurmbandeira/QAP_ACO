@@ -25,52 +25,78 @@ void setElem(Matriz *mat, int lin, int col, int val){
     mat->elementos[lin*mat->tam + col] = val;
 }
 
-void somaPotencial(Matriz *mat){
+int *somaPotencial(Matriz *mat){
     int i, j;
     int tamanho;
     int val;
+    int *vet;
+
     tamanho = mat->tam;
-    int vet [tamanho];
+    vet = malloc(sizeof(int)*tamanho);
     val = 0;
+
     for (j = 0; j < tamanho; j++){
         for (i = 0; i < tamanho; i++){
             val +=  getElem(mat, i, j);
-            /*printf("%d, %d, %d\n", val, i, j);*/
         }
         vet[j] = val;
-        printf("%d\n", vet[j]);
         val = 0;
     }
+
+    return vet;
 }
 
-Matriz *leMatriz(Matriz *mat, char *path){
+Matriz *leMatriz(char *path){
     int i, j;
     int tam, valor;
+    Matriz *mat;
 
     FILE *file;
     file = fopen(path, "r");
     fscanf(file, "%d", &tam);
+
     mat = novaMatriz(tam);
 
-    for (i = 0; i < tam; i++){
-        for (j = 0; j < tam; j++){
+    for (i = 0; i < mat->tam; i++){
+        for (j = 0; j < mat->tam; j++){
             fscanf(file, "%d", &valor);
             setElem(mat, i, j, valor);
             /*printf("%d\n", getElem(mat, i, j));*/
         }
     }
-
     fclose(file);
+
     return mat;
 }
 
+void printaMatriz(Matriz *mat){
+    int i, j;
+    for (i = 0; i < mat->tam; i++){
+        for (j = 0; j < mat->tam; j++){
+            printf("%d\n", getElem(mat, i, j));
+        }
+    }
+}
+
 int main(int argc, char *argv[]){
+    int i;
     Matriz *matrizFluxo;
     Matriz *matrizDistancia;
-    Matriz *somaFluxo;
+    int *somaFluxo;
+    int *somaDistancia;
 
-    matrizFluxo = leMatriz(matrizFluxo, argv[FLUXO]);
-    somaPotencial(matrizFluxo);
-    matrizDistancia = leMatriz(matrizDistancia, argv[DISTANCIA]);
-    somaPotencial(matrizDistancia);
+    matrizFluxo = leMatriz(argv[FLUXO]);
+    matrizDistancia = leMatriz(argv[DISTANCIA]);
+    printaMatriz(matrizFluxo);
+    printaMatriz(matrizDistancia);
+
+    somaFluxo = somaPotencial(matrizFluxo);
+    somaDistancia = somaPotencial(matrizDistancia);
+    for (i = 0; i < matrizFluxo->tam; i++){
+        printf("%d\n", somaFluxo[i]);
+    }
+    for (i = 0; i < matrizDistancia->tam; i++){
+        printf("%d\n", somaDistancia[i]);
+    }
+
 }
