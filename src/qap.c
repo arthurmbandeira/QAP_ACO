@@ -3,10 +3,13 @@
 
 #define FLUXO 1
 #define DISTANCIA 2
+#define CICLOS 3
+#define FORMIGAS 4
 
 struct SMatriz{
     int tam;
     int *elementos;
+    int *potencial;
 };
 typedef struct SMatriz Matriz;
 
@@ -14,6 +17,7 @@ Matriz *novaMatriz( int t ){
     Matriz *mat = malloc(sizeof(Matriz));
     mat->tam = t;
     mat->elementos = (int *)malloc(t*t*sizeof(int*));
+    mat->potencial = malloc(sizeof(int)*t);
     return mat;
 }
 
@@ -29,21 +33,19 @@ int *somaPotencial(Matriz *mat){
     int i, j;
     int tamanho;
     int val;
-    int *vet;
 
     tamanho = mat->tam;
-    vet = malloc(sizeof(int)*tamanho);
     val = 0;
 
     for (j = 0; j < tamanho; j++){
         for (i = 0; i < tamanho; i++){
             val +=  getElem(mat, i, j);
         }
-        vet[j] = val;
+        mat->potencial[j] = val;
         val = 0;
     }
 
-    return vet;
+    return mat->potencial;
 }
 
 Matriz *leMatriz(char *path){
@@ -78,12 +80,25 @@ void printaMatriz(Matriz *mat){
     }
 }
 
+int buscaMaior(Matriz *mat){
+    int i, max;
+    max = mat->potencial[0];
+    for (i = 0; i < mat->tam; i++){
+        if (mat->potencial[i] > max){
+            max = mat->potencial[i];
+        }
+    }
+    return max;
+}
+
 int main(int argc, char *argv[]){
     int i;
     Matriz *matrizFluxo;
     Matriz *matrizDistancia;
     int *somaFluxo;
     int *somaDistancia;
+    int maior1, maior2;
+
 
     matrizFluxo = leMatriz(argv[FLUXO]);
     matrizDistancia = leMatriz(argv[DISTANCIA]);
@@ -98,5 +113,8 @@ int main(int argc, char *argv[]){
     for (i = 0; i < matrizDistancia->tam; i++){
         printf("%d\n", somaDistancia[i]);
     }
+    maior1 = buscaMaior(matrizFluxo);
+    maior2 = buscaMaior(matrizDistancia);
+    printf("Maior1: %d Maior2: %d\n", maior1, maior2);
 
 }
