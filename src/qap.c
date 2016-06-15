@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define FLUXO 1
 #define DISTANCIA 2
@@ -91,6 +92,25 @@ int buscaMaior(Matriz *mat){
     return max;
 }
 
+// Deve ser passada a matrizDistancia
+float *calculaHeuristica(Matriz *matD){
+    int i, j;
+    float *n = malloc(sizeof(int)*matD->tam);
+    for (j = 0; j < matD->tam; j++){
+        n[j] = 1 / (float)matD->potencial[j];
+    }
+    return n;
+}
+
+/*float calculaFeromonio(){
+
+}
+
+float heuristica(float alpha, float beta){
+    int i, j, k;
+
+}*/
+
 int main(int argc, char *argv[]){
     int i;
     Matriz *matrizFluxo;
@@ -98,23 +118,31 @@ int main(int argc, char *argv[]){
     int *somaFluxo;
     int *somaDistancia;
     int maior1, maior2;
+    float *hDistancia;
 
 
     matrizFluxo = leMatriz(argv[FLUXO]);
     matrizDistancia = leMatriz(argv[DISTANCIA]);
     printaMatriz(matrizFluxo);
     printaMatriz(matrizDistancia);
-
-    somaFluxo = somaPotencial(matrizFluxo);
-    somaDistancia = somaPotencial(matrizDistancia);
+    printf("\n");
+    somaPotencial(matrizFluxo);
+    somaPotencial(matrizDistancia);
     for (i = 0; i < matrizFluxo->tam; i++){
-        printf("%d\n", somaFluxo[i]);
+        printf("%d\n", matrizFluxo->potencial[i]);
     }
     for (i = 0; i < matrizDistancia->tam; i++){
-        printf("%d\n", somaDistancia[i]);
+        printf("%d\n", matrizDistancia->potencial[i]);
     }
+    printf("\n");
     maior1 = buscaMaior(matrizFluxo);
     maior2 = buscaMaior(matrizDistancia);
     printf("Maior1: %d Maior2: %d\n", maior1, maior2);
+    printf("\n");
+    hDistancia = calculaHeuristica(matrizDistancia);
+    for (i = 0; i < matrizDistancia->tam; i++){
+        printf("%f\n", hDistancia[i]);
+    }
+    printf("\n");
 
 }
