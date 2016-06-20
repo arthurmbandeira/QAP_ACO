@@ -4,14 +4,15 @@
 
 #define FLUXO 1
 #define DISTANCIA 2
-#define CICLOS 3
-#define FORMIGAS 4
+#define ALPHA 3
+#define BETA 4
+#define RHO 5
+
+#define CICLOS 6
+#define FORMIGAS 7
 
 // 0 <= ALPHA <= 1
 
-#define ALPHA 5
-#define BETA 6
-#define RHO 7
 #define Q 1
 
 struct SMatriz{
@@ -22,14 +23,31 @@ struct SMatriz{
 };
 typedef struct SMatriz Matriz;
 
+struct SFMatriz{
+    int tam;
+    float *elementos;
+};
+typedef struct SFMatriz FMatriz;
+
+struct SElemSolucao{
+    int atividade;
+    int localidade;
+    int valor;
+};
+typedef struct SElemSolucao ElemSolucao;
+
 struct SFormiga{
     int tam;
-    int *listaTabu;
-    float *elementos;
+    int *linhaTabu;
+    int *colunaTabu;
+    int id;
+    int qtdLinhasAtivas;
+    int qtdColunasAtivas;
+    ElemSolucao *solucao;
 };
 typedef struct SFormiga Formiga;
 
-Matriz *novaMatriz( int t ){
+Matriz *novaMatriz(int t){
     int i;
     Matriz *mat = malloc(sizeof(Matriz));
     mat->tam = t;
@@ -42,12 +60,66 @@ Matriz *novaMatriz( int t ){
     return mat;
 }
 
+FMatriz *novaFMatriz(int t){
+    FMatriz *fmat = malloc(sizeof(FMatriz));
+    fmat->tam = t;
+    fmat->elementos = (float *)malloc(t*t*sizeof(float*));
+    return fmat;
+}
+
+Formiga *novaFormiga(int t){
+    int i;
+    Formiga *fmg = malloc(sizeof(Formiga));
+    fmg->id = 0;
+    fmg->tam = t;
+    fmg->linhaTabu = malloc(t*sizeof(int));
+    fmg->colunaTabu = malloc(t*sizeof(int));
+    fmg->solucao = malloc(t*sizeof(ElemSolucao));
+    fmg->qtdLinhasAtivas = t;
+    fmg->qtdColunasAtivas = t;
+    for (i = 0; i < t; i++){
+        fmg->linhaTabu[i] = 1;
+        fmg->colunaTabu[i] = 1;
+    }
+    return fmg;
+}
+
+ElemSolucao *novoElemSolucao(int atividade, int localidade, int valor){
+    ElemSolucao *elem = malloc(sizeof(ElemSolucao));
+    elem->atividade = atividade;
+    elem->localidade = localidade;
+    elem->valor = valor;
+    return elem;
+}
+
 int getElem(Matriz *mat, int lin, int col){
     return mat->elementos[lin*mat->tam + col];
 }
 
 void setElem(Matriz *mat, int lin, int col, int val){
     mat->elementos[lin*mat->tam + col] = val;
+}
+
+float getFloat(FMatriz *fmat, int lin, int col){
+    return fmat->elementos[lin*fmat->tam + col];
+}
+
+void setFloat(FMatriz *fmat, int lin, int col, float val){
+    fmat->elementos[lin*fmat->tam + col] = val;
+}
+
+void marcaVisitado(Formiga *fmg, int lin, int col){
+    fmg->linhaTabu[lin] = 0;
+    fmg->qtdLinhasAtivas--;
+    fmg->colunaTabu[lin] = 0;
+    fmg->qtdColunasAtivas--;
+}
+
+void desmarcaVisitado(Formiga *fmg, int lin, int col){
+    fmg->linhaTabu[lin] = 1;
+    fmg->qtdLinhasAtivas++;
+    fmg->colunaTabu[lin] = 1;
+    fmg->qtdColunasAtivas++;
 }
 
 int *somaPotencial(Matriz *mat){
@@ -137,19 +209,79 @@ float getDesejo(Matriz *mat, int i, int j){
     return 1 / (float)getElem(mat, i, j);
 }
 
-/*Matriz *desejabilidade(Matriz *mat){
-    int i, j;
-    float val;
-    Matriz *desejo;
-    desejo = novaMatriz(mat->tam);
-    for (i = 0; i < mat->tam; i++){
-        for (j = 0; j < mat->tam; j++){
-            val = 1 / (float)(getElem(mat, i, j));
-            setElem(desejo, i, j, val);
+float ajusteFino(Matriz *mat, FMatriz *fmat, int lin, int col, float alpha, float beta){
+    float var1, var2;
+    var1 = pow(getFloat(fmat, lin, col), alpha);
+    var2 = pow(getDesejo(mat, lin, col), beta);
+    return var1 * var2;
+}
+
+float calculaTotal(Formiga *fmg, Matriz *mat, FMatriz *feromonio, float alpha, float beta){
+    int localidade, r;
+    float valorBaixo = 0;
+    for (localidade = 0; localidade < mat->tam; localidade++){
+        if (fmg->linhaTabu[localidade]){
+            for (r = 0; r < mat->tam; r++){
+                if (fmg->colunaTabu[r]){
+                    valorBaixo += ajusteFino(mat, feromonio, localidade, r, alpha, beta);
+                    printf("valorBaixo %f\n", valorBaixo);
+                }
+            }
         }
     }
-    return desejo;
-}*/
+    return valorBaixo;
+}
+
+float probabilidade(Matriz *mat, FMatriz *feromonio, Formiga *fmg, int localidade, int atividade, float total, float alpha, float beta){
+    int r;
+    float valorCima;
+    float prob;
+    float maiorProb = 0;
+    printf("i %d\n", atividade);
+    if (fmg->linhaTabu[localidade]){
+        valorCima = ajusteFino(mat, feromonio, localidade, atividade, alpha, beta);
+        prob = valorCima / total;
+        
+    } else {
+        prob = 0;
+    }
+    return prob;
+}
+
+ElemSolucao *passo(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, float alpha, float beta){
+    int idAtividade, localidade;
+    ElemSolucao *elem;
+    elem = novoElemSolucao(-1, -1, 0);
+    float total, prob, maiorProb;
+    for (idAtividade = fluxo->tam - 1; idAtividade > -1; idAtividade--){
+        for (localidade = 0; localidade < fluxo->tam; localidade++){
+            total = calculaTotal(fmg, matA, feromonio, alpha, beta);
+            prob = probabilidade(matA, feromonio, fmg, localidade, fluxo->ref[idAtividade], total, alpha, beta);
+        }
+        if (maiorProb < prob){
+            maiorProb = prob;
+            elem->atividade = fluxo->ref[idAtividade];
+            elem->localidade = localidade;
+            elem->valor = getElem(matA, localidade, fluxo->ref[idAtividade]);
+        }
+    }
+    return elem;
+}
+
+void addPar(Formiga *fmg, ElemSolucao *elem){
+    fmg->solucao[fmg->id++] = *elem;
+}
+
+void caminho(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, float alpha, float beta){
+    int i;
+    int somaTabu = fmg->qtdColunasAtivas;
+    ElemSolucao *sol;
+    while(fmg->qtdColunasAtivas){
+        sol = passo(fmg, fluxo, matA, feromonio, alpha, beta);
+        addPar(fmg, sol);
+        marcaVisitado(fmg, sol->localidade, sol->atividade);
+    }
+}
 
 Matriz *calculaFeromonio(Matriz *mat){
     int i, j, k;
@@ -192,67 +324,70 @@ void quick(Matriz *mat, int esq, int dir){
     }
 }
 
-/*void passo1(){
-int i;
-for (i = 0; i < count; i++){
-
-}
-}
-
-float passo2(Matriz *matDist, int i, int j, int k, int nroFormigas, float alpha, float beta){
-float out;
-float parteDeCima;
-float parteDeBaixo;
-parteDeCima = pow(calculaFeromonio(), alpha) * pow(1 / (float)matDist->potencial[j], beta);
-
-for (l = 0; l < matDist->tam; l++){
-if (1){
-parteDeBaixo += pow(calculaFeromonio(), alpha) * pow(1 / (float)matDist->potencial[l], beta)
-}
-
-}
-}*/
-
 int main(int argc, char *argv[]){
     int i, j;
     Matriz *matrizFluxo;
     Matriz *matrizDistancia;
-    Matriz *matrizFeromonio;
     Matriz *matrizPareada;
     Matriz *matrizVontade;
+
+    FMatriz *matrizFeromonio;
+
+    Formiga *formiga;
+
 
     int *somaFluxo;
     int *somaDistancia;
     int maior1, maior2;
     float vontade;
-
+    float prob1;
+    float alpha, beta;
 
     matrizFluxo = leMatriz(argv[FLUXO]);
     matrizDistancia = leMatriz(argv[DISTANCIA]);
-    imprimeMatriz(matrizFluxo);
-    printf("\n");
-    imprimeMatriz(matrizDistancia);
-    printf("\n");
+
     somaPotencial(matrizFluxo);
     somaPotencial(matrizDistancia);
-    for (i = 0; i < matrizFluxo->tam; i++){
-        printf("%d\n", matrizFluxo->potencial[i]);
-    }
-    printf("\n");
-    for (i = 0; i < matrizDistancia->tam; i++){
-        printf("%d\n", matrizDistancia->potencial[i]);
+
+    matrizPareada = coupling(matrizDistancia->potencial, matrizFluxo->potencial, matrizFluxo->tam);
+
+    for (i = 0; i < matrizPareada->tam; i++){
+        for (j = 0; j < matrizPareada->tam; j++){
+            maior1 = getElem(matrizPareada, i, j);
+            printf("%d\n", maior1);
+        }
     }
     printf("\n");
 
-    matrizPareada = coupling(matrizDistancia->potencial, matrizFluxo->potencial, matrizFluxo->tam);
-    imprimeMatriz(matrizPareada);
-    printf("\n");
     for (i = 0; i < matrizPareada->tam; i++){
         for (j = 0; j < matrizPareada->tam; j++){
             vontade = getDesejo(matrizPareada, i, j);
             printf("%f\n", vontade);
         }
     }
+
+    matrizFeromonio = novaFMatriz(matrizFluxo->tam);
+    for (i = 0; i < matrizFeromonio->tam; i++){
+        for (j = 0; j < matrizFeromonio->tam; j++){
+            setFloat(matrizFeromonio, i, j, 0.5);
+        }
+    }
+
+    prob1 = 0;
+    alpha = atof(argv[ALPHA]);
+    beta = atof(argv[BETA]);
+    printf("\n");
+
+    quick(matrizFluxo, 0, (matrizFluxo->tam - 1));
+    quick(matrizDistancia, 0, (matrizFluxo->tam - 1));
+
+    formiga = novaFormiga(matrizFluxo->tam);
+    
+    caminho(formiga, matrizFluxo, matrizPareada, matrizFeromonio, alpha, beta);
+    for (i = 0; i < matrizFluxo->tam; i++){
+        printf("%d : %d = %d\n", formiga->solucao[i].atividade, formiga->solucao[i].localidade, formiga->solucao[i].valor);
+    }
+
 }
 
 /*
@@ -267,10 +402,5 @@ printf("%f\n", hDistancia[i]);
 printf("\n");
 matrizFeromonio = calculaFeromonio(matrizDistancia);
 imprimeMatriz(matrizFeromonio);
-printf("\n");
-quick(matrizFluxo, 0, (matrizFluxo->tam - 1));
-quick(matrizDistancia, 0, (matrizFluxo->tam - 1));
-for (i = 0; i < matrizFluxo->tam; i++){
-printf("%d\n", matrizFluxo->potencial[matrizFluxo->ref[i]]);
-}
+
 */
