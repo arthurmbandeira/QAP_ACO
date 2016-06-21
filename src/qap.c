@@ -111,8 +111,18 @@ void setFloat(FMatriz *fmat, int lin, int col, float val){
 void marcaVisitado(Formiga *fmg, int lin, int col){
     fmg->linhaTabu[lin] = 0;
     fmg->qtdLinhasAtivas--;
-    fmg->colunaTabu[lin] = 0;
+    fmg->colunaTabu[col] = 0;
     fmg->qtdColunasAtivas--;
+}
+
+void marcaAtividadeVisitada(Formiga *fmg, int col){
+    fmg->colunaTabu[col] = 0;
+    fmg->qtdColunasAtivas--;
+}
+
+void marcaLocalidadeVisitada(Formiga *fmg, int lin){
+    fmg->linhaTabu[lin] = 0;
+    fmg->qtdLinhasAtivas--;
 }
 
 void desmarcaVisitado(Formiga *fmg, int lin, int col){
@@ -209,6 +219,10 @@ float getDesejo(Matriz *mat, int i, int j){
     return 1 / (float)getElem(mat, i, j);
 }
 
+void addPar(Formiga *fmg, ElemSolucao *elem){
+    fmg->solucao[fmg->id++] = *elem;
+}
+
 float ajusteFino(Matriz *mat, FMatriz *fmat, int lin, int col, float alpha, float beta){
     float var1, var2;
     var1 = pow(getFloat(fmat, lin, col), alpha);
@@ -224,7 +238,6 @@ float calculaTotal(Formiga *fmg, Matriz *mat, FMatriz *feromonio, float alpha, f
             for (r = 0; r < mat->tam; r++){
                 if (fmg->colunaTabu[r]){
                     valorBaixo += ajusteFino(mat, feromonio, localidade, r, alpha, beta);
-                    printf("valorBaixo %f\n", valorBaixo);
                 }
             }
         }
@@ -237,52 +250,59 @@ float probabilidade(Matriz *mat, FMatriz *feromonio, Formiga *fmg, int localidad
     float valorCima;
     float prob;
     float maiorProb = 0;
-    printf("i %d\n", atividade);
     if (fmg->linhaTabu[localidade]){
         valorCima = ajusteFino(mat, feromonio, localidade, atividade, alpha, beta);
         prob = valorCima / total;
-        
     } else {
         prob = 0;
     }
     return prob;
 }
 
-ElemSolucao *passo(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, float alpha, float beta){
-    int idAtividade, localidade;
+ElemSolucao *passo(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, int atividade, float alpha, float beta){
+    int localidade;
+    int maiorAtividade, maiorLocalidade, maiorValor;
     ElemSolucao *elem;
     elem = novoElemSolucao(-1, -1, 0);
     float total, prob, maiorProb;
-    for (idAtividade = fluxo->tam - 1; idAtividade > -1; idAtividade--){
-        for (localidade = 0; localidade < fluxo->tam; localidade++){
-            total = calculaTotal(fmg, matA, feromonio, alpha, beta);
-            prob = probabilidade(matA, feromonio, fmg, localidade, fluxo->ref[idAtividade], total, alpha, beta);
-        }
+
+    marcaAtividadeVisitada(fmg, atividade);
+    for (localidade = 0; localidade < fluxo->tam; localidade++){
+        total = calculaTotal(fmg, matA, feromonio, alpha, beta);
+        prob = probabilidade(matA, feromonio, fmg, localidade, fluxo->ref[atividade], total, alpha, beta);
         if (maiorProb < prob){
             maiorProb = prob;
-            elem->atividade = fluxo->ref[idAtividade];
-            elem->localidade = localidade;
-            elem->valor = getElem(matA, localidade, fluxo->ref[idAtividade]);
+            maiorAtividade = fluxo->ref[atividade];
+            maiorLocalidade = localidade;
+            maiorValor = getElem(matA, localidade, fluxo->ref[atividade]);
         }
     }
+    elem->atividade = maiorAtividade;
+    elem->localidade = maiorLocalidade;
+    elem->valor = maiorValor;
+    marcaLocalidadeVisitada(fmg, maiorLocalidade);
     return elem;
 }
 
-void addPar(Formiga *fmg, ElemSolucao *elem){
-    fmg->solucao[fmg->id++] = *elem;
-}
-
 void caminho(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, float alpha, float beta){
-    int i;
+    int idAtividade;
     int somaTabu = fmg->qtdColunasAtivas;
     ElemSolucao *sol;
-    while(fmg->qtdColunasAtivas){
-        sol = passo(fmg, fluxo, matA, feromonio, alpha, beta);
+    for (idAtividade = fluxo->tam - 1; idAtividade > -1; idAtividade--){
+        sol = passo(fmg, fluxo, matA, feromonio, idAtividade, alpha, beta);
         addPar(fmg, sol);
-        marcaVisitado(fmg, sol->localidade, sol->atividade);
     }
 }
 
+/*float deltaFeromonio(){
+    int i;
+    float valFeromonio;
+    for (i = 0; i < qtdFormigas; i++){
+        
+    }
+}*/
+
+/*
 Matriz *calculaFeromonio(Matriz *mat){
     int i, j, k;
     float valor;
@@ -301,6 +321,7 @@ Matriz *calculaFeromonio(Matriz *mat){
     }
     return fer;
 }
+*/
 
 void quick(Matriz *mat, int esq, int dir){
     int pivo = esq,i,ch,j;
