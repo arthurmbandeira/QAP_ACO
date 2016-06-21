@@ -152,20 +152,6 @@ void marcaLocalidadeVisitada(Formiga *fmg, int lin){
     fmg->qtdLinhasAtivas--;
 }
 
-void marcaVisitado(Formiga *fmg, int lin, int col){
-    fmg->linhaTabu[lin] = 0;
-    fmg->qtdLinhasAtivas--;
-    fmg->colunaTabu[col] = 0;
-    fmg->qtdColunasAtivas--;
-}
-
-void desmarcaVisitado(Formiga *fmg, int lin, int col){
-    fmg->linhaTabu[lin] = 1;
-    fmg->qtdLinhasAtivas++;
-    fmg->colunaTabu[lin] = 1;
-    fmg->qtdColunasAtivas++;
-}
-
 int *somaPotencial(Matriz *mat){
     int i, j;
     int tamanho;
@@ -214,26 +200,6 @@ void imprimeMatriz(Matriz *mat){
             printf("%d\n", getElem(mat, i, j));
         }
     }
-}
-
-int buscaMaior(Matriz *mat){
-    int i, max;
-    max = mat->potencial[0];
-    for (i = 0; i < mat->tam; i++){
-        if (mat->potencial[i] > max){
-            max = mat->potencial[i];
-        }
-    }
-    return max;
-}
-
-float *calculaHeuristica(Matriz *matD){
-    int i, j;
-    float *n = malloc(sizeof(int)*matD->tam);
-    for (j = 0; j < matD->tam; j++){
-        n[j] = 1 / (float)matD->potencial[j];
-    }
-    return n;
 }
 
 Matriz *coupling(int *vet1, int *vet2, int tam){
@@ -326,6 +292,15 @@ void caminho(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, Entr
     }
 }
 
+void iniciliazaFeromonio(FMatriz *feromonio){
+    int i, j;
+    for (i = 0; i < feromonio->tam; i++){
+        for (j = 0; j < feromonio->tam; j++){
+            setFloat(feromonio, i, j, 0.0015);
+        }
+    }
+}
+
 void depositaFeromonio(Formiga *vetorFormiga, FMatriz *feromonio, Entrada *in){
     int i, k;
     int loc, atv;
@@ -387,40 +362,32 @@ void quick(Matriz *mat, int esq, int dir){
 
 int main(int argc, char *argv[]){
     int i, j, k;
+
+    int nCiclos;
+    int melhorIdFormiga;
+    int melhorPeso = 2147483647; //Maior valor de inteiro em C
+
+    int *somaFluxo;
+    int *somaDistancia;
+
     Matriz *matrizFluxo;
     Matriz *matrizDistancia;
     Matriz *matrizPareada;
 
     FMatriz *matrizFeromonio;
 
-    Formiga *formiga;
     Formiga *vetorFormigas;
 
     ElemSolucao *melhorSolucao;
 
     Entrada *parametros;
 
-    int *somaFluxo;
-    int *somaDistancia;
-    int maior1, maior2;
-    int melhorPeso = 2147483647; //Maior valor de inteiro em C
-    int nCiclos;
-    int melhorIdFormiga;
-
-    float vontade;
-    float prob1;
-    float alpha, beta;
-
     matrizFluxo = leMatriz(argv[FLUXO]);
     matrizDistancia = leMatriz(argv[DISTANCIA]);
     parametros = novaEntrada(argv[ALPHA], argv[BETA], argv[RHO], argv[Q], argv[FORMIGAS], argv[CICLOS]);
 
     matrizFeromonio = novaFMatriz(matrizFluxo->tam);
-    for (i = 0; i < matrizFeromonio->tam; i++){
-        for (j = 0; j < matrizFeromonio->tam; j++){
-            setFloat(matrizFeromonio, i, j, 0.0015);
-        }
-    }
+    iniciliazaFeromonio(matrizFeromonio);
 
     somaPotencial(matrizFluxo);
     somaPotencial(matrizDistancia);
@@ -428,12 +395,8 @@ int main(int argc, char *argv[]){
 
     quick(matrizFluxo, 0, (matrizFluxo->tam - 1));
     quick(matrizDistancia, 0, (matrizFluxo->tam - 1));
-
-    /*formiga = novaFormiga(matrizFluxo->tam);*/
     
     vetorFormigas = malloc(parametros->qtdFormigas *  sizeof(Formiga));
-
-    /*vetorFormigas[0] = *formiga;*/
 
     criaFormigas(vetorFormigas, matrizFluxo->tam, parametros);
 
