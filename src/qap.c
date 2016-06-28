@@ -361,13 +361,12 @@ void resetMaior(Matriz *fluxo, int index){
 }
 
 void caminho(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio, Entrada *in){
-    int atividade;
     int i;
     /*int somaTabu = fmg->qtdColunasAtivas;*/
     ElemSolucao *sol;
     for (i = 0; i < fluxo->tam; i++){
         /*printf("tamanho %d\n", fluxo->tam);*/
-        atividade = pegaMaior(fluxo);
+        /*atividade = pegaMaior(fluxo);*/
         shuffle(fluxo, fluxo->tam);
         /*printf("maior %d\n", atividade);*/
         /*printf("%d %d\n", idAtividade, fluxo->elementos[idAtividade]);*/
@@ -556,6 +555,10 @@ int main(int argc, char *argv[]){
         /*printf("%d\n", melhorPeso);*/
     }
     printf("\n\n");
+    for (i = 0; i < tamanho; i++){
+        printf("%d  ", matrizFluxo->potencial[matrizFluxo->ref[i]]);
+    }
+    printf("\n");
     for (i = 0; i < matrizFluxo->tam; i++){
         printf("%d : %d = %d\n", melhorSolucao[i].atividade, melhorSolucao[i].localidade, melhorSolucao[i].valor);
     }
