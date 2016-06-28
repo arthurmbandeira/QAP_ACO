@@ -325,13 +325,13 @@ ElemSolucao *passo(Formiga *fmg, Matriz *fluxo, Matriz *matA, FMatriz *feromonio
     ElemSolucao *elem;
     float total, prob, maiorProb;
 
-    marcaAtividadeVisitada(fmg, fluxo->ref[atividade]);
+    marcaAtividadeVisitada(fmg, atividade);
     for (localidade = 0; localidade < fluxo->tam; localidade++){
         total = calculaTotal(fmg, matA, feromonio, in);
         prob = probabilidade(matA, feromonio, fmg, localidade, fluxo->ref[atividade], total, in);
         if (maiorProb < prob){
             maiorProb = prob;
-            maiorAtividade = fluxo->ref[atividade];
+            maiorAtividade = atividade;
             maiorLocalidade = localidade;
             maiorValor = getElem(matA, localidade, fluxo->ref[atividade]);
         }
